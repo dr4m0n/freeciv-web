@@ -18,6 +18,7 @@
 package org.freeciv.servlet;
 
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
@@ -27,34 +28,59 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.services.Statistics;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
+// TODO: Auto-generated Javadoc
 /**
  * Hall Of Fame list
- *
- * URL: /hall_of_fame
+ * 
+ * URL: /hall_of_fame.
  */
 public class HallOfFameList extends HttpServlet {
-    private static final long serialVersionUID = 1L;
 
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = 1L;
 
-        Statistics statistics = new Statistics();
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(HallOfFameList.class);
 
-        List<Map<String, Object>> result = statistics.getHallOfFameList();
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	@Override
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
-         try {
-            request.setAttribute("data", result);
-        } catch (RuntimeException e) {
-            // Ohh well, we tried ...
-        }
+		logParams(request);
 
-        RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/game/hall_of_fame.jsp");
-        rd.forward(request, response);
+		Statistics statistics = new Statistics();
 
-    }
+		List<Map<String, Object>> result = statistics.getHallOfFameList();
+
+		try {
+			request.setAttribute("data", result);
+		} catch (RuntimeException e) {
+			LOGGER.error("ERROR!", e);
+		}
+
+		RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/game/hall_of_fame.jsp");
+		rd.forward(request, response);
+	}
+
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}
 
 }

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,15 +33,29 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
+// TODO: Auto-generated Javadoc
 /**
  * This servlet will collect statistics about time played, and number of games stated.
  *
  * URL: /freeciv_time_played_stats
  */
 public class FreecivStatsServlet extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(FreecivStatsServlet.class);
+
+	/** The Constant gameTypes. */
 	private final static Map<String, Integer> gameTypes = new HashMap<>();
+
 	static {
 		gameTypes.put("single2d", 0);
 		gameTypes.put("single3d", 5);
@@ -49,49 +64,70 @@ public class FreecivStatsServlet extends HttpServlet {
 		gameTypes.put("hotseat", 4);
 	}
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		Connection conn = null;
+		PreparedStatement ps = null;
 		try {
-
 			String gameType = request.getParameter("type");
 			if (!gameTypes.containsKey(gameType)) {
 				return;
 			}
-
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
-
 			int gameTypeId = gameTypes.get(gameType);
-
-			String insert =
-							  "INSERT INTO games_played_stats (statsDate, gameType, gameCount) "
-							+ "VALUES (CURDATE(), ?, 1) "
-							+ "ON DUPLICATE KEY UPDATE gameCount = gameCount + 1";
-			PreparedStatement preparedStatement = conn.prepareStatement(insert);
-			preparedStatement.setInt(1, gameTypeId);
-			preparedStatement.executeUpdate();
-
-
+			String insert = QueryDesigner.updateGameStats();
+			ps = conn.prepareStatement(insert);
+			ps.setInt(1, gameTypeId);
+			ps.executeUpdate();
 		} catch (Exception err) {
-			System.err.println("Error in FreecivStatsServlet" + err.getMessage());
+			LOGGER.error("ERROR!", err);
 		} finally {
-			if (conn != null)
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
+			}
 		}
-
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
-		
 	}
+	
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
+
 }

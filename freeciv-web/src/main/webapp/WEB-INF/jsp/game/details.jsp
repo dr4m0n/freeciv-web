@@ -1,20 +1,22 @@
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %> 
-<%@ include file="/WEB-INF/jsp/fragments/i18n.jsp" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
+<%@ include file="/WEB-INF/jsp/fragments/i18n.jsp"%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<%@include file="/WEB-INF/jsp/fragments/head.jsp"%>
-	<script type="text/javascript" src="https://s7.addthis.com/js/300/addthis_widget.js#pubid=ra-553240ed5ba009c1" async="async"></script>
-    <link rel="stylesheet" href="/css/morris.css" />
-    <script src="/javascript/libs/raphael-min.js"></script>
-	<script type="text/javascript" src="/javascript/libs/morris.min.js" ></script>
-	<style>
-		.table th {
-			text-align: center;
-		}
-	</style>
-	<script>
+<%@include file="/WEB-INF/jsp/fragments/head.jsp"%>
+<script type="text/javascript"
+	src="https://s7.addthis.com/js/300/addthis_widget.js#pubid=ra-553240ed5ba009c1"
+	async="async"></script>
+<link rel="stylesheet" href="/css/morris.css" />
+<script src="/javascript/libs/raphael-min.js"></script>
+<script type="text/javascript" src="/javascript/libs/morris.min.js"></script>
+<style>
+.table th {
+	text-align: center;
+}
+</style>
+<script>
 		/****************************************************************************
 		  Shows scores on the game details page.
 		****************************************************************************/
@@ -104,7 +106,7 @@
 </head>
 <body>
 	<%@include file="/WEB-INF/jsp/fragments/header.jsp"%>
-	
+
 	<!-- Begin page content -->
 	<div class="container">
 		<div class="text-center">
@@ -122,13 +124,15 @@
 						<c:choose>
 							<c:when test="${state == 'Pregame'}">
 								<div>
-									<a class="label label-success" href="/webclient/?action=multi&civserverport=${port}&amp;civserverhost=${host}">
+									<a class="label label-success"
+										href="/webclient/?action=multi&civserverport=${port}&amp;civserverhost=${host}">
 										Join</a> You can join this game now.
 								</div>
 							</c:when>
 							<c:otherwise>
 								<div>
-									<a class="label label-primary" href="/webclient/?action=multi&civserverport=${port}&amp;civserverhost=${host}">
+									<a class="label label-primary"
+										href="/webclient/?action=multi&civserverport=${port}&amp;civserverhost=${host}">
 										Join/Observe</a> You can observe this game now.
 								</div>
 							</c:otherwise>
@@ -176,19 +180,19 @@
 									</thead>
 									<tbody>
 										<c:forEach items="${players}" var="player">
-										    <c:if test="${fn:contains(player.name, 'New Available Player') == false}">
-    											<tr>
-    												<td>
-    													<c:if test="${player.flag ne 'none'}">
-			    	   										<img src="/images/flags/${player.flag}-web.png" alt="${player.flag}" width="50">
-    				   									</c:if>
-	    			   								</td>
-		    										<td>${player.name}</td>
-			    									<td>${player.nation}</td>
-				    								<td>${player.user}</td>
-					    							<td>${player.type}</td>
-						    					</tr>
-						    				</c:if>
+											<c:if
+												test="${fn:contains(player.name, 'New Available Player') == false}">
+												<tr>
+													<td><c:if test="${player.flag ne 'none'}">
+															<img src="/images/flags/${player.flag}-web.png"
+																alt="${player.flag}" width="50">
+														</c:if></td>
+													<td>${player.name}</td>
+													<td>${player.nation}</td>
+													<td>${player.user}</td>
+													<td>${player.type}</td>
+												</tr>
+											</c:if>
 										</c:forEach>
 									</tbody>
 								</table>
@@ -199,18 +203,23 @@
 						</c:if>
 					</div>
 				</div>
-			
+
 				<!-- scores -->
 				<div class="row">
 					<div class="center-block" style="width: 800px;">
 						<c:if test="${state == 'Running'}">
 							<span class="score-message"></span>
-							<b>Scores:</b><div id="scores"></div><br><br><b>Settings:</b><br>
+							<b>Scores:</b>
+							<div id="scores"></div>
+							<br>
+							<br>
+							<b>Settings:</b>
+							<br>
 							<script>show_scores(${port});</script>
 						</c:if>
 					</div>
 				</div>
-				
+
 				<!-- variables -->
 				<div class="row">
 					<div class="center-block" style="width: 200px;">
@@ -218,15 +227,16 @@
 							<div class="table-responsive">
 								<table class="table">
 									<thead>
-									<tr>
-										<th>Name</th>
-										<th>Value</th>
-									</tr>
+										<tr>
+											<th>Name</th>
+											<th>Value</th>
+										</tr>
 									</thead>
 									<tbody>
 										<c:forEach items="${variables}" var="variable">
 											<tr>
-												<td>${variable.name}</td> <!-- flag goes here -->
+												<td>${variable.name}</td>
+												<!-- flag goes here -->
 												<td>${variable.value}</td>
 											</tr>
 										</c:forEach>
@@ -242,13 +252,14 @@
 			</c:if>
 			<a class="btn btn-default" href="/game/list">Return to game list</a>
 		</div>
-		
-		
-		
+
+
+
 		<!-- Site footer -->
 		<%@include file="/WEB-INF/jsp/fragments/footer.jsp"%>
-	</div> <!-- container -->
-		
+	</div>
+	<!-- container -->
+
 
 
 </body>

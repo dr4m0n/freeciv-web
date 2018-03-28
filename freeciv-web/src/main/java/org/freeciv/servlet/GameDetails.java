@@ -23,6 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import javax.naming.Context;
@@ -35,60 +36,133 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
+// TODO: Auto-generated Javadoc
 /**
  * Displays detailed information about a specific game
- *
- * URL: /meta/game-details
+ * 
+ * URL: /meta/game-details.
  */
 @MultipartConfig
 public class GameDetails extends HttpServlet {
 
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = 1L;
+
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(GameDetails.class);
+
+	/**
+	 * The Class PlayerSummary.
+	 */
 	public class PlayerSummary {
+
+		/** The flag. */
 		private String flag;
+
+		/** The name. */
 		private String name;
+
+		/** The nation. */
 		private String nation;
+
+		/** The user. */
 		private String user;
+
+		/** The type. */
 		private String type;
 
+		/**
+		 * Gets the flag.
+		 *
+		 * @return the flag
+		 */
 		public String getFlag() {
 			return flag;
 		}
 
+		/**
+		 * Gets the name.
+		 *
+		 * @return the name
+		 */
 		public String getName() {
 			return name;
 		}
 
+		/**
+		 * Gets the nation.
+		 *
+		 * @return the nation
+		 */
 		public String getNation() {
 			return nation;
 		}
 
+		/**
+		 * Gets the type.
+		 *
+		 * @return the type
+		 */
 		public String getType() {
 			return type;
 		}
 
+		/**
+		 * Gets the user.
+		 *
+		 * @return the user
+		 */
 		public String getUser() {
 			return user;
 		}
 	}
 
+	/**
+	 * The Class VariableSummary.
+	 */
 	public class VariableSummary {
+
+		/** The name. */
 		private String name;
+
+		/** The value. */
 		private String value;
 
+		/**
+		 * Gets the name.
+		 *
+		 * @return the name
+		 */
 		public String getName() {
 			return name;
 		}
 
+		/**
+		 * Gets the value.
+		 *
+		 * @return the value
+		 */
 		public String getValue() {
 			return value;
 		}
 
 	}
 
-	private static final long serialVersionUID = 1L;
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+		logParams(request);
 
 		String sHost = request.getParameter("host");
 		String sPort = request.getParameter("port");
@@ -106,6 +180,7 @@ public class GameDetails extends HttpServlet {
 				throw new IllegalArgumentException("Host parameter is required to perform this request.");
 			}
 		} catch (IllegalArgumentException e) {
+			LOGGER.error("ERROR!", e);
 			RequestDispatcher rd = request.getRequestDispatcher("game-details.jsp");
 			rd.forward(request, response);
 			return;
@@ -114,19 +189,19 @@ public class GameDetails extends HttpServlet {
 		String hostPort = sHost + ':' + sPort;
 		String query;
 		Connection conn = null;
-		PreparedStatement statement = null;
+		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
 
-			query = "SELECT * FROM servers WHERE host = ? AND port = ?";
+			query = QueryDesigner.getServers();
 
-			statement = conn.prepareStatement(query);
-			statement.setString(1, sHost);
-			statement.setInt(2, port);
-			rs = statement.executeQuery();
+			ps = conn.prepareStatement(query);
+			ps.setString(1, sHost);
+			ps.setInt(2, port);
+			rs = ps.executeQuery();
 			if (rs.next()) {
 				request.setAttribute("version", rs.getString("version"));
 				request.setAttribute("patches", rs.getString("patches"));
@@ -142,10 +217,10 @@ public class GameDetails extends HttpServlet {
 				return;
 			}
 
-			query = "SELECT * FROM players WHERE hostport = ? ORDER BY name";
-			statement = conn.prepareStatement(query);
-			statement.setString(1, hostPort);
-			rs = statement.executeQuery();
+			query = QueryDesigner.getPlayers();
+			ps = conn.prepareStatement(query);
+			ps.setString(1, hostPort);
+			rs = ps.executeQuery();
 			List<PlayerSummary> players = new ArrayList<>();
 			while (rs.next()) {
 				PlayerSummary player = new PlayerSummary();
@@ -158,10 +233,10 @@ public class GameDetails extends HttpServlet {
 			}
 			request.setAttribute("players", players);
 
-			query = "SELECT * FROM variables WHERE hostport = ? ORDER BY name";
-			statement = conn.prepareStatement(query);
-			statement.setString(1, hostPort);
-			rs = statement.executeQuery();
+			query = QueryDesigner.getVariables();
+			ps = conn.prepareStatement(query);
+			ps.setString(1, hostPort);
+			rs = ps.executeQuery();
 			List<VariableSummary> variables = new ArrayList<>();
 			while (rs.next()) {
 				VariableSummary variable = new VariableSummary();
@@ -172,16 +247,31 @@ public class GameDetails extends HttpServlet {
 			request.setAttribute("variables", variables);
 
 		} catch (Exception err) {
+			LOGGER.error("ERROR!", err);
 			request.removeAttribute("state");
 			RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/game/details.jsp");
 			rd.forward(request, response);
 			return;
 		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
 			}
 		}
@@ -189,4 +279,17 @@ public class GameDetails extends HttpServlet {
 		RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/game/details.jsp");
 		rd.forward(request, response);
 	}
+
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}
+
 }

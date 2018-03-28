@@ -20,43 +20,67 @@ package org.freeciv.servlet;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
 
+// TODO: Auto-generated Javadoc
 /**
  * Returns a list of savegames for the given user
- *
- * URL: /listsavegames
+ * 
+ * URL: /listsavegames.
  */
 public class ListSaveGames extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
+
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(ListSaveGames.class);
+
+	/** The pattern validate alpha numeric. */
 	private String PATTERN_VALIDATE_ALPHA_NUMERIC = "[0-9a-zA-Z\\.]*";
+
+	/** The p. */
 	private Pattern p = Pattern.compile(PATTERN_VALIDATE_ALPHA_NUMERIC);
 
+	/** The savegame directory. */
 	private String savegameDirectory;
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.GenericServlet#init(javax.servlet.ServletConfig)
+	 */
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-
 		try {
 			Properties prop = new Properties();
 			prop.load(getServletContext().getResourceAsStream("/WEB-INF/config.properties"));
 			savegameDirectory = prop.getProperty("savegame_dir");
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("ERROR!", e);
 		}
 	}
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		String username = request.getParameter("username");
 		if (username != null && !p.matcher(username).matches()) {
-			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-					"Invalid username");
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid username");
 			return;
 		}
 
@@ -85,19 +109,33 @@ public class ListSaveGames extends HttpServlet {
 				response.getOutputStream().print(buffer.toString());
 			}
 
-		} catch (Exception err) {
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
 			response.setHeader("result", "error");
-			err.printStackTrace();
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "ERROR");
 		}
-
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
-
 	}
+	
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
 
 }

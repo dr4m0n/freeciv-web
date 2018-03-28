@@ -18,6 +18,7 @@
 package org.freeciv.servlet;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -25,30 +26,66 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.services.Games;
 
+// TODO: Auto-generated Javadoc
 /**
  * Displays the home page
- *
- * URL: /
+ * 
+ * URL: /.
  */
 public class Index extends HttpServlet {
 
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(Index.class);
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the GET method.");
+		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the GET method.");
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-
 		Games games = new Games();
+
+		logParams(request);
 
 		try {
 			request.setAttribute("games", games.summary());
 		} catch (RuntimeException e) {
+			LOGGER.error("ERROR!", e);
 			// Ohh well, we tried ...
 		}
-
 		RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/index.jsp");
 		rd.forward(request, response);
-
 	}
+
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
+
 }

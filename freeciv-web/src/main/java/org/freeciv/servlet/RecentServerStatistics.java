@@ -22,6 +22,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Enumeration;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -31,57 +32,56 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
 import org.json.JSONObject;
 
+// TODO: Auto-generated Javadoc
 /**
  * Lists: the number of servers.
  *
  * URL: /meta/status
  */
 public class RecentServerStatistics extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(RecentServerStatistics.class);
+
+	/** The Constant CONTENT_TYPE. */
 	private static final String CONTENT_TYPE = "application/json";
+
+	/** The Constant INTERNAL_SERVER_ERROR. */
 	private static final String INTERNAL_SERVER_ERROR = new JSONObject() //
 			.put("statusCode", HttpServletResponse.SC_INTERNAL_SERVER_ERROR) //
 			.put("error", "Internal server error.") //
 			.toString();
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
+		logParams(request);
+
 		Connection conn = null;
-
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
-
-			String query = "" //
-					+ "	SELECT COUNT(*) AS count " //
-					+ "	  FROM servers " //
-					+ "UNION ALL " //
-					+ "	SELECT COUNT(*) AS count " //
-					+ "	  FROM servers " //
-					+ "	 WHERE type = 'singleplayer' " //
-					+ "    AND state = 'Pregame' " //
-					+ "    AND humans = '0' " //
-					+ "    AND stamp >= DATE_SUB(NOW(), INTERVAL 1 MINUTE) " //
-					+ "UNION ALL " //
-					+ "	SELECT COUNT(*) AS count " //
-					+ "	  FROM servers " //
-					+ "	 WHERE type = 'multiplayer' " //
-					+ "	   AND state = 'Pregame' " //
-					+ "	   AND stamp >= DATE_SUB(NOW(), INTERVAL 1 MINUTE) " //
-					+ "UNION ALL " //
-					+ "	SELECT COUNT(*) AS count " //
-					+ "	  FROM servers " //
-					+ "  WHERE type = 'pbem' " //
-					+ "    AND state = 'Pregame' " //
-					+ "    AND stamp >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)";
-
-			PreparedStatement preparedStatement = conn.prepareStatement(query);
-			ResultSet rs = preparedStatement.executeQuery();
+			String query = QueryDesigner.getServerStats();
+			ps = conn.prepareStatement(query);
+			rs = ps.executeQuery();
 			int i = 1;
 			StringBuilder result = new StringBuilder();
 			result.append("meta-status");
@@ -94,22 +94,47 @@ public class RecentServerStatistics extends HttpServlet {
 			if (count != 4) {
 				throw new Exception("Expected 4 rows of data. Obtained " + i);
 			}
-
 			response.getOutputStream().print(result.toString());
-
-		} catch (Exception err) {
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
 			response.setContentType(CONTENT_TYPE);
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			response.getOutputStream().print(INTERNAL_SERVER_ERROR);
 		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
 			}
 		}
 	}
+	
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
 
 }

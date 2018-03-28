@@ -17,27 +17,45 @@
  *******************************************************************************/
 package org.freeciv.servlet;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
 import java.sql.*;
+import java.util.Enumeration;
 
 import javax.sql.*;
 import javax.naming.*;
 
-
+// TODO: Auto-generated Javadoc
 /**
- * This class is responsible for finding an available freeciv-web server for clients
- * based on information in the metaserver database.
+ * This class is responsible for finding an available freeciv-web server for clients based on information in the metaserver database.
  *
  * URL: /civclientlauncher
  */
 public class CivclientLauncher extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(DeactivateUser.class);
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		// Parse input parameters ...
 		String action = request.getParameter("action");
@@ -48,11 +66,16 @@ public class CivclientLauncher extends HttpServlet {
 		String civServerPort = request.getParameter("civserverport");
 
 		Connection conn = null;
+		PreparedStatement ps1 = null;
+		PreparedStatement ps0 = null;
+		ResultSet rs0 = null;
+		ResultSet rs1 = null;
+
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
-			
+
 			String gameType;
 			switch (action) {
 			case "new":
@@ -68,81 +91,117 @@ public class CivclientLauncher extends HttpServlet {
 				break;
 			default:
 				response.setHeader("result", "invalid port validation");
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-						"Unable to find a valid Freeciv server to play on. Please try again later.");
+				LOGGER.info("Unable to find a valid Freeciv server to play on. Please try again later.");
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to find a valid Freeciv server to play on. Please try again later.");
 				return;
 			}
-			
 
-			if (civServerPort == null || civServerPort.length() == 0) {
+			if (StringUtils.isEmpty(civServerPort)) {
 				// If the user requested a new game, then get host and port for an available
 				// server from the metaserver DB, and use that one.
-				String lookupQuery =
-						"SELECT port "
-								+ "FROM servers "
-								+ "WHERE state = 'Pregame' "
-								+ "	AND type = ? "
-								+ "	AND humans = '0' "
-								+ "ORDER BY RAND() "
-								+ "LIMIT 1 ";
-
-				PreparedStatement lookupStmt = conn.prepareStatement(lookupQuery);
-				lookupStmt.setString(1, gameType);
-				ResultSet lookupRs = lookupStmt.executeQuery();
-				if (lookupRs.next()) {
-					civServerPort = Integer.toString(lookupRs.getInt(1));
+				String lookupQuery = QueryDesigner.getPort();
+				ps0 = conn.prepareStatement(lookupQuery);
+				ps0.setString(1, gameType);
+				rs0 = ps0.executeQuery();
+				if (rs0.next()) {
+					civServerPort = Integer.toString(rs0.getInt(1));
 				} else {
-					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-							"No servers available for creating a new game on.");
+					LOGGER.info("No servers available for creating a new game on.");
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "No servers available for creating a new game on.");
 					return;
 				}
 			}
 
 			/* Validate port */
-			String validateQuery = "SELECT COUNT(*) FROM servers WHERE port = ?";
-			PreparedStatement validateStmt = conn.prepareStatement(validateQuery);
-			if (civServerPort == null || civServerPort.length() == 0) {
+			/*
+			String validateQuery = QueryDesigner.checkPort();
+			ps1 = conn.prepareStatement(validateQuery);
+			if (StringUtils.isEmpty(civServerPort)) {
+				LOGGER.info("Unable to find a valid Freeciv server to play on. Please try again later.");
 				response.setHeader("result", "invalid port validation");
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-						"Unable to find a valid Freeciv server to play on. Please try again later.");
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to find a valid Freeciv server to play on. Please try again later.");
 				return;
 			}
 
-			validateStmt.setInt(1, Integer.parseInt(civServerPort));
-			ResultSet validateRs = validateStmt.executeQuery();
-			validateRs.next();
-			if (validateRs.getInt(1) != 1) {
+			ps1.setInt(1, Integer.parseInt(civServerPort));
+			rs1 = ps1.executeQuery();
+			rs1.next();
+			if (rs1.getInt(1) != 1) {
+				LOGGER.info("Invalid input values to civclient.");
 				response.setHeader("result", "invalid port validation");
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-						"Invalid input values to civclient.");
+				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid input values to civclient.");
 				return;
 			}
+			*/
 
 		} catch (Exception err) {
+			LOGGER.error("SQL ERROR!", err);
 			response.setHeader("result", err.getMessage());
-			err.printStackTrace();
 			return;
 		} finally {
-			if (conn != null)
+			if (rs1 != null) {
+				try {
+					rs1.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (rs0 != null) {
+				try {
+					rs0.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps1 != null) {
+				try {
+					ps1.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps0 != null) {
+				try {
+					ps0.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
+			}
 		}
 
 		response.setHeader("port", civServerPort);
 		response.setHeader("result", "success");
 		response.setHeader("action", action);
 		response.getOutputStream().print("success");
-
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
+	}
 
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
 	}
 
 }

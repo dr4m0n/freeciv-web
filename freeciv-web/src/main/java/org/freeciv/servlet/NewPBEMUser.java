@@ -18,6 +18,7 @@
 package org.freeciv.servlet;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import java.io.*;
@@ -38,9 +39,15 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
 import javax.naming.*;
 
-
+// TODO: Auto-generated Javadoc
 /**
  * Creates a new play by email user account.
  *
@@ -48,24 +55,42 @@ import javax.naming.*;
  */
 public class NewPBEMUser extends HttpServlet {
 
-	private static final int ACTIVATED = 1;
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
+
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(NewPBEMUser.class);
+
+	/** The Constant ACTIVATED. */
+	private static final int ACTIVATED = 1;
+
+	/** The captcha secret. */
 	private String captchaSecret;
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.GenericServlet#init(javax.servlet.ServletConfig)
+	 */
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-
 		try {
 			Properties prop = new Properties();
 			prop.load(getServletContext().getResourceAsStream("/WEB-INF/config.properties"));
 			captchaSecret = prop.getProperty("captcha_secret");
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("ERROR!", e);
 		}
 	}
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		String username = java.net.URLDecoder.decode(request.getParameter("username"), "UTF-8");
 		String password = java.net.URLDecoder.decode(request.getParameter("password"), "UTF-8");
@@ -78,18 +103,15 @@ public class NewPBEMUser extends HttpServlet {
 		}
 
 		if (password == null || password.length() <= 2) {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-					"Invalid password. Please try again with another password.");
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid password. Please try again with another password.");
 			return;
 		}
 		if (username == null || username.length() <= 2) {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-					"Invalid username. Please try again with another username.");
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid username. Please try again with another username.");
 			return;
 		}
 		if (email == null || email.length() <= 4) {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-					"Invalid e-mail address. Please try again with another username.");
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid e-mail address. Please try again with another username.");
 			return;
 		}
 		HttpClient client = HttpClientBuilder.create().build();
@@ -102,8 +124,9 @@ public class NewPBEMUser extends HttpServlet {
 		post.setEntity(new UrlEncodedFormEntity(urlParameters));
 
 		if (!captchaSecret.contains("secret goes here")) {
-			/* Validate captcha against google api. skip validation for localhost 
-             where captcha_secret still has default value. */
+			/*
+			 * Validate captcha against google api. skip validation for localhost where captcha_secret still has default value.
+			 */
 			HttpResponse captchaResponse = client.execute(post);
 			InputStream in = captchaResponse.getEntity().getContent();
 			String body = IOUtils.toString(in, "UTF-8");
@@ -114,42 +137,66 @@ public class NewPBEMUser extends HttpServlet {
 		}
 
 		Connection conn = null;
+		PreparedStatement ps = null;
 		try {
 			Thread.sleep(300);
 
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
 
-			String query = "INSERT INTO auth (username, email, secure_hashed_password, activated, ip) "
-							+ "VALUES (?, ?, ?, ?, ?)";
-			PreparedStatement preparedStatement = conn.prepareStatement(query);
-			preparedStatement.setString(1, username.toLowerCase());
-			preparedStatement.setString(2, email);
-			preparedStatement.setString(3, Crypt.crypt(password));
-			preparedStatement.setInt(4, ACTIVATED);
-			preparedStatement.setString(5, ipAddress);
-			preparedStatement.executeUpdate();
+			String query = QueryDesigner.insertAuth();
+			ps = conn.prepareStatement(query);
+			ps.setString(1, username.toLowerCase());
+			ps.setString(2, email);
+			ps.setString(3, Crypt.crypt(password));
+			ps.setInt(4, ACTIVATED);
+			ps.setString(5, ipAddress);
+			ps.executeUpdate();
 
 		} catch (Exception err) {
+			LOGGER.error("ERROR!", err);
 			response.setHeader("result", "error");
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unable to create user: " + err);
 		} finally {
-			if (conn != null)
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
+			}
 		}
 
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
-
 	}
+	
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
 
 }

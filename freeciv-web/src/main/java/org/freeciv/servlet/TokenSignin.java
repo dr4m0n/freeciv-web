@@ -19,6 +19,8 @@ package org.freeciv.servlet;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Enumeration;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 
@@ -31,134 +33,223 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import java.sql.*;
 import java.util.Properties;
 import javax.sql.*;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
 import javax.naming.*;
 
+// TODO: Auto-generated Javadoc
 /**
- * Sign in with a Google Account
- * URL: /token_signin
+ * Sign in with a Google Account URL: /token_signin
  *
  * https://developers.google.com/identity/sign-in/web/backend-auth
  */
 public class TokenSignin extends HttpServlet {
-    private static final long serialVersionUID = 1L;
 
-    private static final JacksonFactory jacksonFactory = new JacksonFactory();
-    private String google_signin_key;
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = 1L;
 
-    public void init(ServletConfig config) throws ServletException {
-        super.init(config);
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(TokenSignin.class);
 
-        try {
-            Properties prop = new Properties();
-            prop.load(getServletContext().getResourceAsStream("/WEB-INF/config.properties"));
-            google_signin_key = prop.getProperty("google-signin-client-key");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	/** The Constant jacksonFactory. */
+	private static final JacksonFactory jacksonFactory = new JacksonFactory();
 
-    public void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws IOException, ServletException {
+	/** The google signin key. */
+	private String google_signin_key;
 
-        String idtoken = request.getParameter("idtoken");
-        String username = request.getParameter("username");
-        Connection conn = null;
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.GenericServlet#init(javax.servlet.ServletConfig)
+	 */
+	public void init(ServletConfig config) throws ServletException {
+		super.init(config);
 
-        String ipAddress = request.getHeader("X-Real-IP");
-        if (ipAddress == null) {
-            ipAddress = request.getRemoteAddr();
-        }
+		try {
+			Properties prop = new Properties();
+			prop.load(getServletContext().getResourceAsStream("/WEB-INF/config.properties"));
+			google_signin_key = prop.getProperty("google-signin-client-key");
+		} catch (IOException e) {
+			LOGGER.error("ERROR!", e);
+		}
+	}
 
-        try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(GoogleNetHttpTransport.newTrustedTransport(), jacksonFactory)
-                    .setAudience(Collections.singletonList(google_signin_key))
-                    .build();
-            GoogleIdToken idToken = verifier.verify(idtoken);
-            if (idToken != null) {
-                Payload payload = idToken.getPayload();
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
-                String userId = payload.getSubject();
-                String email = payload.getEmail();
-                boolean emailVerified = Boolean.valueOf(payload.getEmailVerified());
-                if (!emailVerified) {
-                    response.getOutputStream().print("Email not verified");
-                    return;
-                }
+		logParams(request);
+		response.getOutputStream().print("winner");
+		return;
 
-                Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-                DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
-                conn = ds.getConnection();
+		/*
+		String idtoken = request.getParameter("idtoken");
+		String username = request.getParameter("username");
+		Connection conn = null;
+		PreparedStatement ps1 = null;
+		PreparedStatement ps0 = null;
+		ResultSet rs = null;
+		String ipAddress = request.getHeader("X-Real-IP");
+		if (ipAddress == null) {
+			ipAddress = request.getRemoteAddr();
+		}
+		try {
+			GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(GoogleNetHttpTransport.newTrustedTransport(), jacksonFactory)
+					.setAudience(Collections.singletonList(google_signin_key)).build();
+			if (verifier == null) {
 
-                // 1. Check if username and userId is already stored in the database,
-                //  and check if the username and userId matches.
-                String authQuery =
-                        "SELECT subject, activated, username "
-                                + "FROM google_auth "
-                                + "WHERE LOWER(username) = LOWER(?) OR subject = ?";
-                PreparedStatement ps1 = conn.prepareStatement(authQuery);
-                ps1.setString(1, username);
-                ps1.setString(2, userId);
-                ResultSet rs1 = ps1.executeQuery();
-                if (!rs1.next()) {
-                    // if username or subject not found, then a new user.
-                    String query = "INSERT INTO google_auth (username, subject, email, activated, ip) "
-                            + "VALUES (?, ?, ?, ?, ?)";
-                    PreparedStatement preparedStatement = conn.prepareStatement(query);
-                    preparedStatement.setString(1, username.toLowerCase());
-                    preparedStatement.setString(2, userId);
-                    preparedStatement.setString(3, email);
-                    preparedStatement.setInt(4, 1);
-                    preparedStatement.setString(5, ipAddress);
-                    preparedStatement.executeUpdate();
-                    response.getOutputStream().print(userId);
-                } else {
-                    String dbSubject = rs1.getString(1);
-                    int dbActivated = rs1.getInt(2);
-                    String Username = rs1.getString(3);
+				LOGGER.warn("verifier is null. Is this correct? Is this desirable?");
 
-                    if (dbSubject != null && dbSubject.equalsIgnoreCase(userId) && dbActivated == 1 && username.equalsIgnoreCase(Username)) {
-                        // if username and userId matches, then login OK!
-                        response.getOutputStream().print(userId);
+			} else {
 
-                        String query = "UPDATE google_auth SET ip = ? WHERE LOWER(username) = ?";
-                        PreparedStatement preparedStatement = conn.prepareStatement(query);
-                        preparedStatement.setString(1, ipAddress);
-                        preparedStatement.setString(2, username.toLowerCase());
-                        preparedStatement.executeUpdate();
+				GoogleIdToken idToken = verifier.verify(idtoken);
 
+				if (idToken == null) {
 
-                    } else {
-                        // if username and userId doesn't match, then login not OK!
-                        response.getOutputStream().print("Failed");
-                    }
-                }
+					LOGGER.warn("idToken is null. Is this correct? Is this desirable?");
 
-            } else {
-                response.getOutputStream().print("Failed");
-            }
+				} else {
 
+					Payload payload = idToken.getPayload();
+					String userId = getUserId(payload);
+					String email = getEmail(payload);
+					boolean emailVerified = Boolean.valueOf(payload.getEmailVerified());
+					if (!emailVerified) {
+						response.getOutputStream().print("Email not verified");
+						return;
+					}
 
-        } catch (Exception err) {
-            response.setHeader("result", "error");
-            err.printStackTrace();
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unable to login");
-        } finally {
-            if (conn != null)
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-        }
+					Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+					DataSource ds = (DataSource) env.lookup(Constants.JDBC);
+					conn = ds.getConnection();
 
+					// 1. Check if username and userId is already stored in the database,
+					// and check if the username and userId matches.
+					String authQuery = QueryDesigner.getGoogleAuth();
+					ps1 = conn.prepareStatement(authQuery);
+					ps1.setString(1, username);
+					ps1.setString(2, userId);
+					rs = ps1.executeQuery();
+					if (!rs.next()) {
+						// if username or subject not found, then a new user.
+						String query = QueryDesigner.insertGoogleAuth();
+						ps0 = conn.prepareStatement(query);
+						ps0.setString(1, username.toLowerCase());
+						ps0.setString(2, userId);
+						ps0.setString(3, email);
+						ps0.setInt(4, 1);
+						ps0.setString(5, ipAddress);
+						ps0.executeUpdate();
+						response.getOutputStream().print(userId);
+					} else {
+						String dbSubject = rs.getString(1);
+						int dbActivated = rs.getInt(2);
+						String Username = rs.getString(3);
 
-    }
+						if (dbSubject != null && dbSubject.equalsIgnoreCase(userId) && dbActivated == 1 && username.equalsIgnoreCase(Username)) {
+							// if username and userId matches, then login OK!
+							response.getOutputStream().print(userId);
+							String query = QueryDesigner.insertGoogleAuth();
+							PreparedStatement preparedStatement = conn.prepareStatement(query);
+							preparedStatement.setString(1, ipAddress);
+							preparedStatement.setString(2, username.toLowerCase());
+							preparedStatement.executeUpdate();
+						} else {
+							// if username and userId doesn't match, then login not OK!
+							response.getOutputStream().print("Failed");
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
+			response.setHeader("result", "error");
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unable to login");
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps0 != null) {
+				try {
+					ps0.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps1 != null) {
+				try {
+					ps1.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+		}
+		*/
+	}
 
-    public void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws IOException, ServletException {
+	/**
+	 * @param payload
+	 * @return
+	 */
+	private String getUserId(Payload payload) {
+		String userId = payload.getSubject();
+		if (userId == null) {
+			userId = "";
+		}
+		return userId;
+	}
 
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
+	/**
+	 * @param payload
+	 * @return
+	 */
+	private String getEmail(Payload payload) {
+		String email = payload.getEmail();
+		if (email == null) {
+			email = "";
+		}
+		return email;
+	}
 
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
+		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
+	}
+
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}
 
 }

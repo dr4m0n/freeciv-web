@@ -22,61 +22,105 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 
 import java.sql.*;
+import java.util.Enumeration;
 
 import javax.sql.*;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
 import javax.naming.*;
 
-
+// TODO: Auto-generated Javadoc
 /**
  * Finds a random opponent username.
  *
  * URL: /random_user
  */
 public class RandomUser extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(RandomUser.class);
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
-
-			String query =
-					  "SELECT username "
-					+ "FROM `auth` "
-					+ "WHERE activated='1' "
-					+ "	AND id >= (SELECT FLOOR(MAX(id) * RAND()) FROM `auth`) "
-					+ "ORDER BY id LIMIT 1;";
-			PreparedStatement preparedStatement = conn.prepareStatement(query);
-			ResultSet rs = preparedStatement.executeQuery();
+			String query = QueryDesigner.getTopAuth();
+			ps = conn.prepareStatement(query);
+			rs = ps.executeQuery();
 			if (!rs.next()) {
 				response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid user.");
 				return;
 			}
 			response.getOutputStream().print(rs.getString(1));
-
-		} catch (Exception err) {
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
 			response.setHeader("result", "error");
-			err.printStackTrace();
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unable to login");
 		} finally {
-			if (conn != null)
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
+			}
 		}
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
-
 	}
+	
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
 
 }

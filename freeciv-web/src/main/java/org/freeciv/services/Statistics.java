@@ -14,26 +14,38 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
+
+// TODO: Auto-generated Javadoc
+/**
+ * The Class Statistics.
+ */
 public class Statistics {
 
-	public List<Map<String, String>> getPlayByEmailWinners() {
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(Statistics.class);
 
-		Connection connection = null;
+	/**
+	 * Gets the play by email winners.
+	 *
+	 * @return the play by email winners
+	 */
+	public List<Map<String, String>> getPlayByEmailWinners() {
+		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
 			Context env;
-			env = (Context) (new InitialContext().lookup("java:comp/env"));
-
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
-			connection = ds.getConnection();
-
-			String query = "SELECT winner, r.playerOne, r.playerTwo, endDate, "
-					+ "(SELECT COUNT(*) FROM game_results r2 WHERE r2.winner = r.playerOne) AS winsByPlayerOne, "
-					+ "(SELECT COUNT(*) FROM game_results r3 WHERE r3.winner = r.playerTwo) AS winsByPlayerTwo " //
-					+ "FROM game_results r " //
-					+ "ORDER BY id DESC LIMIT 20";
-
-			PreparedStatement preparedStatement = connection.prepareStatement(query);
-			ResultSet rs = preparedStatement.executeQuery();
+			env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
+			conn = ds.getConnection();
+			String query = QueryDesigner.getPlayByEmailWinners();
+			ps = conn.prepareStatement(query);
+			rs = ps.executeQuery();
 			List<Map<String, String>> result = new ArrayList<>();
 			while (rs.next()) {
 				Map<String, String> record = new HashMap<>();
@@ -44,42 +56,55 @@ public class Statistics {
 				record.put("winsByPlayerOne", rs.getInt("winsByPlayerOne") + "");
 				record.put("winsByPlayerTwo", rs.getString("winsByPlayerTwo") + "");
 				result.add(record);
-
 			}
 			return result;
 		} catch (SQLException e) {
+			LOGGER.error("ERROR!", e);
 			throw new RuntimeException(e);
 		} catch (NamingException e) {
+			LOGGER.error("ERROR!", e);
 			throw new RuntimeException(e);
 		} finally {
-			if (connection != null) {
+			if (rs != null) {
 				try {
-					connection.close();
+					rs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
 				}
 			}
 		}
 	}
 
+	/**
+	 * Gets the played games by type.
+	 *
+	 * @return the played games by type
+	 */
 	public List<Map<String, Object>> getPlayedGamesByType() {
-
-		Connection connection = null;
+		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
-			connection = ds.getConnection();
-			String query = "SELECT DISTINCT statsDate AS date, "
-					+ "(SELECT gameCount FROM games_played_stats WHERE statsDate = date AND gameType = '0') AS webSinglePlayer, "
-					+ "(SELECT gameCount FROM games_played_stats WHERE statsDate = date AND gameType = '1') AS webMultiPlayer, "
-					+ "(SELECT gameCount FROM games_played_stats WHERE statsDate = date AND gameType = '2') AS webPlayByEmail, "
-					+ "(SELECT gameCount FROM games_played_stats WHERE statsDate = date AND gameType = '4') AS webHotseat, "
-					+ "(SELECT gameCount FROM games_played_stats WHERE statsDate = date AND gameType = '3') AS desktopMultiplayer, "
-					+ "(SELECT gameCount FROM games_played_stats WHERE statsDate = date AND gameType = '5') AS webSinglePlayer3D "
-					+ "FROM games_played_stats";
-
-			PreparedStatement preparedStatement = connection.prepareStatement(query);
-			ResultSet rs = preparedStatement.executeQuery();
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
+			conn = ds.getConnection();
+			String query = QueryDesigner.getPlayedGamesByType();
+			ps = conn.prepareStatement(query);
+			rs = ps.executeQuery();
 			List<Map<String, Object>> result = new ArrayList<>();
 			while (rs.next()) {
 				Map<String, Object> item = new HashMap<>();
@@ -94,36 +119,57 @@ public class Statistics {
 			}
 			return result;
 		} catch (Exception err) {
+			LOGGER.error("ERROR!", err);
 			throw new RuntimeException(err);
 		} finally {
-			if (connection != null) {
+			if (rs != null) {
 				try {
-					connection.close();
+					rs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
 				}
 			}
 		}
 	}
 
+	/**
+	 * Gets the hall of fame list.
+	 *
+	 * @return the hall of fame list
+	 */
 	public List<Map<String, Object>> getHallOfFameList() {
-
-		Connection connection = null;
+		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
-			connection = ds.getConnection();
-			String query = "SELECT id, username, nation, score, end_turn, end_date, (select sum(s.score) from hall_of_fame s where s.username = a.username) as total_score FROM hall_of_fame a order by score DESC limit 500";
-
-			PreparedStatement preparedStatement = connection.prepareStatement(query);
-			ResultSet rs = preparedStatement.executeQuery();
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
+			conn = ds.getConnection();
+			String query = QueryDesigner.getHallOfFameList();
+			ps = conn.prepareStatement(query);
+			rs = ps.executeQuery();
 			List<Map<String, Object>> result = new ArrayList<>();
 			int num = 1;
 			while (rs.next()) {
 				Map<String, Object> item = new HashMap<>();
 				item.put("position", num);
 				String username = rs.getString("username");
-				if (username.length() >= 20) username = username.substring(0, 19)  + "..";
+				if (username.length() >= 20)
+					username = username.substring(0, 19) + "..";
 				item.put("username", username);
 				item.put("nation", rs.getString("nation"));
 				item.put("score", rs.getString("score"));
@@ -135,14 +181,29 @@ public class Statistics {
 				num++;
 			}
 			return result;
-		} catch (Exception err) {
-			throw new RuntimeException(err);
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
+			throw new RuntimeException(e);
 		} finally {
-			if (connection != null) {
+			if (rs != null) {
 				try {
-					connection.close();
+					rs.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
 				}
 			}
 		}

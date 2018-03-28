@@ -34,7 +34,16 @@ if (fcwHost == null || fcwHost.isEmpty()) {
 var ts="${initParam.buildTimeStamp}";
 var fcw_host="<%= fcwHost %>";
 </script>
-<script type="text/javascript" src="/javascript/libs/jquery.min.js?ts=${initParam.buildTimeStamp}"></script>
+<script type="text/javascript"
+	src="https://cdn.trackjs.com/releases/current/tracker.js"></script>
+<%
+	}
+%>
+<script type="text/javascript">
+	var ts = "${initParam.buildTimeStamp}";
+</script>
+<script type="text/javascript"
+	src="/javascript/libs/jquery.min.js?ts=${initParam.buildTimeStamp}"></script>
 
 <script src="https://apis.google.com/js/platform.js"></script>
 
@@ -46,38 +55,51 @@ var fcw_host="<%= fcwHost %>";
 
 <script type="text/javascript" src="/music/audio.min.js"></script>
 
-<c:if test="${not empty param.webgl_debug}" >
-  <script> var gliEmbedDebug = true; </script> <script src="/javascript/webgl/libs/webgl-inspector/core/embed.js"></script>
+<c:if test="${not empty param.webgl_debug}">
+	<script>
+		var gliEmbedDebug = true;
+	</script>
+	<script src="/javascript/webgl/libs/webgl-inspector/core/embed.js"></script>
 </c:if>
 
 <link rel="shortcut icon" href="/images/freeciv-shortcut-icon.png" />
 <link rel="apple-touch-icon" href="/images/freeciv-splash2.png" />
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, minimal-ui" />
+<meta name="viewport"
+	content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, minimal-ui" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
 <meta name="google-signin-client_id" content="<%= googleSigninClientKey %>">
 <link rel="manifest" href="/static/manifest.json">
 
-<script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
-        async defer>
+<script
+	src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
+	async defer>
+	
 </script>
 </head>
 
 <body>
-    <jsp:include page="pregame.jsp" flush="false"/>
-    <jsp:include page="game.jsp" flush="false"/>
-    
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	<jsp:include page="pregame.jsp" flush="false" />
+	<jsp:include page="game.jsp" flush="false" />
 
-  ga('create', 'UA-40584174-1', 'auto');
-  ga('send', 'pageview');
-</script> 
+	<script>
+		(function(i, s, o, g, r, a, m) {
+			i['GoogleAnalyticsObject'] = r;
+			i[r] = i[r] || function() {
+				(i[r].q = i[r].q || []).push(arguments)
+			}, i[r].l = 1 * new Date();
+			a = s.createElement(o), m = s.getElementsByTagName(o)[0];
+			a.async = 1;
+			a.src = g;
+			m.parentNode.insertBefore(a, m)
+		})(window, document, 'script',
+				'//www.google-analytics.com/analytics.js', 'ga');
+
+		ga('create', 'UA-116578266-1', 'auto');
+		ga('send', 'pageview');
+	</script>
 </body>
 
 <script id="terrain_fragment_shh" type="x-shader/x-fragment">

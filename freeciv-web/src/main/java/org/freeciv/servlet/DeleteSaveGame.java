@@ -18,6 +18,11 @@
 package org.freeciv.servlet;
 
 import org.apache.commons.codec.digest.Crypt;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -25,6 +30,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Enumeration;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import javax.naming.Context;
@@ -33,74 +39,93 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.sql.DataSource;
 
-
+// TODO: Auto-generated Javadoc
 /**
  * Deletes a savegame.
  *
  * URL: /deletesavegame
  */
 public class DeleteSaveGame extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
+
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(DeleteSaveGame.class);
+
+	/** The Constant SAVEGAME_EXTENSION. */
+	private static final String SAVEGAME_EXTENSION = ".sav.xz";
+
+	/** The pattern validate alpha numeric. */
 	private String PATTERN_VALIDATE_ALPHA_NUMERIC = "[0-9a-zA-Z\\.]*";
+
+	/** The p. */
 	private Pattern p = Pattern.compile(PATTERN_VALIDATE_ALPHA_NUMERIC);
 
+	/** The savegame directory. */
 	private String savegameDirectory;
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.GenericServlet#init(javax.servlet.ServletConfig)
+	 */
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-
 		try {
 			Properties prop = new Properties();
 			prop.load(getServletContext().getResourceAsStream("/WEB-INF/config.properties"));
 			savegameDirectory = prop.getProperty("savegame_dir");
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("ERROR!", e);
 		}
 	}
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		String username = request.getParameter("username");
 		String savegame = request.getParameter("savegame");
 		String secure_password = java.net.URLDecoder.decode(request.getParameter("sha_password"), "UTF-8");
 
 		if (!p.matcher(username).matches() || username.toLowerCase().equals("pbem")) {
-			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-					"Invalid username");
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid username");
 			return;
 		}
 		if (savegame == null || savegame.length() > 100 || savegame.contains(".") || savegame.contains("/") || savegame.contains("\\")) {
-			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-					"Invalid savegame");
+			response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid savegame");
 			return;
 		}
 
 		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
 
 			// Salted, hashed password.
-			String saltHashQuery =
-					"SELECT secure_hashed_password "
-							+ "FROM auth "
-							+ "WHERE LOWER(username) = LOWER(?) "
-							+ "	AND activated = '1' LIMIT 1";
-			PreparedStatement ps1 = conn.prepareStatement(saltHashQuery);
-			ps1.setString(1, username);
-			ResultSet rs1 = ps1.executeQuery();
-			if (!rs1.next()) {
+			String saltHashQuery = QueryDesigner.getPasswordAuth();
+			ps = conn.prepareStatement(saltHashQuery);
+			ps.setString(1, username);
+			rs = ps.executeQuery();
+			if (!rs.next()) {
 				response.getOutputStream().print("Failed");
 				return;
 			} else {
-				String hashedPasswordFromDB = rs1.getString(1);
+				String hashedPasswordFromDB = rs.getString(1);
 				if (hashedPasswordFromDB == null || secure_password == null) {
 					response.getOutputStream().print("Failed auth when deleting.");
 					return;
 				}
-				if ( hashedPasswordFromDB.equals(Crypt.crypt(secure_password, hashedPasswordFromDB))) {
+				if (hashedPasswordFromDB.equals(Crypt.crypt(secure_password, hashedPasswordFromDB))) {
 					// Login OK!
 				} else {
 					response.getOutputStream().print("Failed");
@@ -109,16 +134,31 @@ public class DeleteSaveGame extends HttpServlet {
 			}
 
 		} catch (Exception err) {
+			LOGGER.error("ERROR!", err);
 			response.setHeader("result", "error");
-			err.printStackTrace();
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unable to login");
 		} finally {
-			if (conn != null)
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
+			}
 		}
 
 		try {
@@ -127,31 +167,46 @@ public class DeleteSaveGame extends HttpServlet {
 				if (!folder.exists()) {
 					response.getOutputStream().print("Error!");
 				} else {
-					for (File savegameFile: folder.listFiles()) {
-						if (savegameFile.exists() && savegameFile.isFile() && savegameFile.getName().endsWith(".sav.xz")) {
+					for (File savegameFile : folder.listFiles()) {
+						if (savegameFile.exists() && savegameFile.isFile() && savegameFile.getName().endsWith(SAVEGAME_EXTENSION)) {
 							Files.delete(savegameFile.toPath());
 						}
 					}
 				}
 			} else {
-				File savegameFile = new File(savegameDirectory + username + "/" + savegame + ".sav.xz");
-				if (savegameFile.exists() && savegameFile.isFile() && savegameFile.getName().endsWith(".sav.xz")) {
+				File savegameFile = new File(savegameDirectory + username + "/" + savegame + SAVEGAME_EXTENSION);
+				if (savegameFile.exists() && savegameFile.isFile() && savegameFile.getName().endsWith(SAVEGAME_EXTENSION)) {
 					Files.delete(savegameFile.toPath());
 				}
 			}
 		} catch (Exception err) {
+			LOGGER.error("ERROR!", err);
 			response.setHeader("result", "error");
-			err.printStackTrace();
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "ERROR");
 		}
 
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
-
 	}
+	
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
+	}	
 
 }

@@ -18,6 +18,7 @@
 package org.freeciv.servlet;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -26,21 +27,36 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.services.Games;
 import org.freeciv.services.Statistics;
 
+// TODO: Auto-generated Javadoc
 /**
  * Displays the multiplayer games
- *
- * URL: /game/list
+ * 
+ * URL: /game/list.
  */
 @MultipartConfig
 public class GameList extends HttpServlet {
 
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(GameList.class);
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+		logParams(request);
 
 		try {
 			Games games = new Games();
@@ -51,13 +67,25 @@ public class GameList extends HttpServlet {
 			request.setAttribute("multiPlayerGamesList", games.getMultiPlayerGames());
 			request.setAttribute("playByEmailStatistics", statistics.getPlayByEmailWinners());
 			request.setAttribute("view", request.getParameter("v"));
-		} catch (RuntimeException err) {
-			throw err;
-			// Ohh well, we tried ...
+		} catch (RuntimeException e) {
+			LOGGER.error("ERROR!", e);
+			throw e;
 		}
 
 		RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/game/list.jsp");
 		rd.forward(request, response);
+	}
+
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
 	}
 
 }

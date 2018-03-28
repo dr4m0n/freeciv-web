@@ -18,99 +18,146 @@
 package org.freeciv.servlet;
 
 import org.apache.commons.codec.digest.Crypt;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
 
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
 import java.sql.*;
+import java.util.Enumeration;
 
 import javax.sql.*;
 import javax.naming.*;
 
-
+// TODO: Auto-generated Javadoc
 /**
  * Deactivate a user account.
  *
  * URL: /deactivate_user
  */
 public class DeactivateUser extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
-	public void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(DeactivateUser.class);
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+
+		logParams(request);
 
 		String username = request.getParameter("username");
 		String secure_password = java.net.URLDecoder.decode(request.getParameter("sha_password"), "UTF-8");
 
 		if (username == null || username.length() <= 2) {
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-					"Invalid username. Please try again with another username.");
+			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid username. Please try again with another username.");
 			return;
 		}
 
 		Connection conn = null;
+		PreparedStatement ps0 = null;
+		PreparedStatement ps1 = null;
+		ResultSet rs = null;
+
 		try {
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
 
 			// Salted, hashed password.
-			String saltHashQuery =
-					"SELECT secure_hashed_password "
-							+ "FROM auth "
-							+ "WHERE LOWER(username) = LOWER(?) "
-							+ "	AND activated = '1' LIMIT 1";
-			PreparedStatement ps1 = conn.prepareStatement(saltHashQuery);
+			String saltHashQuery = QueryDesigner.getPasswordAuth();
+			ps1 = conn.prepareStatement(saltHashQuery);
 			ps1.setString(1, username);
-			ResultSet rs1 = ps1.executeQuery();
-			if (!rs1.next()) {
+			rs = ps1.executeQuery();
+			if (!rs.next()) {
 				response.getOutputStream().print("Failed");
 				return;
 			} else {
-				String hashedPasswordFromDB = rs1.getString(1);
+				String hashedPasswordFromDB = rs.getString(1);
 				if (hashedPasswordFromDB.equals(Crypt.crypt(secure_password, hashedPasswordFromDB))) {
 
-					String query = "UPDATE auth SET activated = '0' WHERE username = ? ";
-					PreparedStatement preparedStatement = conn.prepareStatement(query);
-					preparedStatement.setString(1, username);
-					int no_updated = preparedStatement.executeUpdate();
+					String query = QueryDesigner.updateAuthDeactivate();
+					PreparedStatement ps = conn.prepareStatement(query);
+					ps.setString(1, username);
+					int no_updated = ps.executeUpdate();
 					if (no_updated == 1) {
 						response.getOutputStream().print("OK!");
 					} else {
-						response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-								"Invalid username or password.");
+						response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid username or password.");
 						return;
 					}
-
 				} else {
-					response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-							"Invalid username or password.");
+					response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid username or password.");
 					return;
 				}
 			}
-
-		} catch (Exception err) {
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
 			response.setHeader("result", "error");
-			err.printStackTrace();
 			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unable to login");
 		} finally {
-			if (conn != null)
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps0 != null) {
+				try {
+					ps0.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps1 != null) {
+				try {
+					ps1.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
+			}
 		}
-
-
 	}
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, ServletException {
-
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
+	}
 
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+		}
 	}
 
 }

@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Enumeration;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -34,45 +35,61 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.freeciv.context.EnvSqlConnection;
+import org.freeciv.utils.Constants;
+import org.freeciv.utils.QueryDesigner;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+// TODO: Auto-generated Javadoc
 /**
- * Lists: the number of running games, the number of single player games played,
- * and the number of multi player games played.
+ * Lists: the number of running games, the number of single player games played, and the number of multi player games played.
  *
  * URL: /game/play-by-email/top
  */
 public class GamePlayByEmailTop extends HttpServlet {
+
+	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 1L;
 
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(GamePlayByEmailTop.class);
+
+	/** The Constant HEADER_EXPIRES. */
 	private static final String HEADER_EXPIRES = "Expires";
+
+	/** The Constant CONTENT_TYPE. */
 	private static final String CONTENT_TYPE = "application/json";
+
+	/** The Constant INTERNAL_SERVER_ERROR. */
 	private static final String INTERNAL_SERVER_ERROR = new JSONObject() //
 			.put("statusCode", HttpServletResponse.SC_INTERNAL_SERVER_ERROR) //
 			.put("error", "Internal server error.") //
 			.toString();
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see javax.servlet.http.HttpServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+	 */
 	@Override
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
-		Connection conn = null;
+		logParams(request);
 
+		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
 			response.setContentType(CONTENT_TYPE);
-
-			Context env = (Context) (new InitialContext().lookup("java:comp/env"));
-			DataSource ds = (DataSource) env.lookup("jdbc/freeciv_mysql");
+			Context env = (Context) (new InitialContext().lookup(Constants.CONTEXT));
+			DataSource ds = (DataSource) env.lookup(Constants.JDBC);
 			conn = ds.getConnection();
-
-			String query = "" //
-					+ "SELECT winner AS player, COUNT(winner) AS wins " //
-					+ "  FROM game_results " //
-					+ " GROUP BY winner " //
-					+ " ORDER BY wins DESC LIMIT 10";
-
-			PreparedStatement preparedStatement = conn.prepareStatement(query);
-			ResultSet rs = preparedStatement.executeQuery();
+			String query = QueryDesigner.getPlayByEmailTopPlayers();
+			ps = conn.prepareStatement(query);
+			rs = ps.executeQuery();
 			JSONArray result = new JSONArray();
 			while (rs.next()) {
 				result.put(new JSONObject() //
@@ -80,24 +97,48 @@ public class GamePlayByEmailTop extends HttpServlet {
 						.put("wins", rs.getInt("wins")) //
 				);
 			}
-
 			ZonedDateTime expires = ZonedDateTime.now(ZoneId.of("UTC")).plusHours(1);
 			String rfc1123Expires = expires.format(DateTimeFormatter.RFC_1123_DATE_TIME);
-
 			response.setHeader(HEADER_EXPIRES, rfc1123Expires);
 			response.getOutputStream().print(result.toString());
-
-		} catch (Exception err) {
+		} catch (Exception e) {
+			LOGGER.error("ERROR!", e);
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			response.getOutputStream().print(INTERNAL_SERVER_ERROR);
 		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
+			if (ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					LOGGER.error("ERROR!", e);
+				}
+			}
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					LOGGER.error("ERROR!", e);
 				}
 			}
+		}
+	}
+
+	/**
+	 * @param request
+	 */
+	protected void logParams(HttpServletRequest request) {
+		LOGGER.info("request received!");
+		Enumeration<String> params = request.getParameterNames();
+		while (params.hasMoreElements()) {
+			String paramName = params.nextElement();
+			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
 		}
 	}
 
