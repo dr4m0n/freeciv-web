@@ -87,17 +87,6 @@ public class TokenSignin extends HttpServlet {
 
 		logParams(request);
 
-		if (Constants.VALIDATING) {
-			// will continue
-		} else {
-			try {
-				response.getOutputStream().print("winner");
-			} catch (Exception e) {
-				LOGGER.error("ERROR!", e);
-			}
-			return;
-		}
-
 		String idtoken = request.getParameter("idtoken");
 		String username = request.getParameter("username");
 		Connection conn = null;
@@ -180,7 +169,7 @@ public class TokenSignin extends HttpServlet {
 						if (dbSubject != null && dbSubject.equalsIgnoreCase(userId) && dbActivated == 1 && username.equalsIgnoreCase(Username)) {
 							// if username and userId matches, then login OK!
 							response.getOutputStream().print(userId);
-							String query = QueryDesigner.insertGoogleAuth();
+							String query = QueryDesigner.updateGoogleAuth();
 							PreparedStatement preparedStatement = conn.prepareStatement(query);
 							preparedStatement.setString(1, ipAddress);
 							preparedStatement.setString(2, username.toLowerCase());
