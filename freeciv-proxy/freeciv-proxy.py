@@ -34,21 +34,28 @@ from civcom import *
 import json
 import uuid
 import gc
-import mysql.connector
+#import mysql.connector
 import configparser
+
+import pyodbc
 
 PROXY_PORT = 8002
 CONNECTION_LIMIT = 1000
 
 civcoms = {}
 
+DB = None
+
 chdir(sys.path[0])
 settings = configparser.ConfigParser()
 settings.read("settings.ini")
 
-mysql_user=settings.get("Config", "mysql_user");
-mysql_database=settings.get("Config", "mysql_database");
-mysql_password=settings.get("Config", "mysql_password");
+mssql_driver=settings.get("Config", "mssql_driver");
+mssql_host=settings.get("Config", "mssql_host");
+mssql_port=settings.get("Config", "mssql_port");
+mssql_database=settings.get("Config", "mssql_database");
+mssql_username=settings.get("Config", "mssql_user");
+mssql_password=settings.get("Config", "mssql_password");
 
 class IndexHandler(web.RequestHandler):
 
@@ -86,9 +93,9 @@ class WSHandler(websocket.WebSocketHandler):
               return
             self.civserverport = login_message['port']
             auth_ok = self.check_user(
-                    login_message['username'] if 'username' in login_message else None, 
-                    login_message['password'] if 'password' in login_message else None, 
-                    login_message['subject'] if 'subject' in login_message else None);
+                login_message['username'] if 'username' in login_message else None, 
+                login_message['password'] if 'password' in login_message else None, 
+                login_message['subject'] if 'subject' in login_message else None)
             if (not auth_ok): 
               self.write_message("[{\"pid\":5,\"message\":\"Error: Could not authenticate user with password. Try a different username.\",\"you_can_join\":false,\"conn_id\":-1}]")
               return
@@ -125,44 +132,45 @@ class WSHandler(websocket.WebSocketHandler):
     def check_user(self, username, password, check_subject):
       result = None;
       cursor = None;
-      cnx = None;
       try:
-        cnx = mysql.connector.connect(user=mysql_user, database=mysql_database, password=mysql_password)
-
         # Check login with Google Account
-        cursor = cnx.cursor()
-        query = ("select subject, activated, (select a.username from auth a where ga.username = a.username) as auth_username from google_auth ga where lower(username)=lower(%(usr)s)")
-        cursor.execute(query, {'usr' : username})
-        dbSubject = None;
-        authUsername = None;
-        for usrrow in cursor:
-          if (usrrow[1] == 0): return False;
-          dbSubject = usrrow[0];
-          authUsername = usrrow[2];
-        if (dbSubject is not None and dbSubject != check_subject and authUsername is None): return False;
-        if (dbSubject is not None and dbSubject == check_subject): return True;
+        cursor = DB.cursor()
+        query = ("select subject, activated, (select a.username from auth a where ga.username = a.username) as auth_username from google_auth ga where lower(username)=lower(?)")
+        cursor.execute(query, (username,))
+        row = cursor.fetchone()
+        if not row:
+            return False
+	
+        (subject, activated, auth_username) = row
+        if not activated:
+            return False
+
+        if (subject is not None and subject != check_subject and auth_username is None):
+            return False;
+        if (subject is not None and subject == check_subject):
+            return True;
 
         # Get the hashed password from the database
-        query = ("select username, secure_hashed_password, activated from auth where lower(username)=lower(%(usr)s)")
-        cursor.execute(query, {'usr' : username})
-        salt = None;
-        for usrrow in cursor:
-          salt = usrrow[1];
-          if (usrrow[2] == 0): return False;
-        if (salt == None): return True;
+        query = ("select username, secure_hashed_password, activated from auth where lower(username)=lower(?)")
+        cursor.execute(query, (username,))
+        row = cursor.fetchone()
+        if not row:
+            return False
+        (username, salt, activated) = row
+        if not activated:
+            return False
+        if not salt:
+            return True;
 
         # Validate the password in the database
-        query = ("select count(*) from auth where lower(username)=lower(%(usr)s) and secure_hashed_password = ENCRYPT(%(pwd)s, %(salt)s)")
-        cursor.execute(query, {'usr' : username, 'pwd' : password, 'salt' : salt})
-        usrcount = 0;
-        for authrow in cursor:
-          usrcount = authrow[0];
-        if (usrcount != 1): return False; 
+        query = ("select count(*) from auth where lower(username)=lower(?) and secure_hashed_password = ENCRYPT(?, ?)")
+        cursor.execute(query, (username, password, salt,))
+        row = cursor.fetchone()
+        if not row and row[0]:
+            return False
       finally:
         cursor.close()
-        cnx.close()
       return True;
-
 
     # enables support for allowing alternate origins. See check_origin in websocket.py
     def check_origin(self, origin):
@@ -197,27 +205,33 @@ def validate_username(name):
         return True
 
 
+def main():
+    print('Started Freeciv-proxy. Use Control-C to exit')
+
+    global PROXY_PORT
+    if len(sys.argv) == 2:
+        PROXY_PORT = int(sys.argv[1])
+    print(('port: ' + str(PROXY_PORT)))
+
+    global DB
+    # cnx = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (mssql_host, mssql_username, mssql_password, mssql_database)
+    # cnx = 'DRIVER={SQL Server};SERVER=%s;UID=%s;PWD=%s;;DATABASE=%s' % (mssql_host, mssql_username, mssql_password, mssql_database)
+    # cnx = 'DSN=FCWebDB;UID=fcweb@fcwebdb;PWD=FC123web'
+    cnx = 'DRIVER='+mssql_driver+';PORT='+mssql_port+';SERVER='+mssql_host+';PORT=1443;DATABASE='+mssql_database+';UID='+mssql_username+';PWD='+mssql_password
+    DB = pyodbc.connect(cnx)
+    LOG_FILENAME = '../logs/freeciv-proxy-logging-' + str(PROXY_PORT) + '.log'
+    logging.basicConfig(filename=LOG_FILENAME,level=logging.INFO)
+    logger = logging.getLogger("freeciv-proxy")
+
+    application = web.Application([
+        (r'/civsocket/' + str(PROXY_PORT), WSHandler),
+        (r"/", IndexHandler),
+        (r"(.*)status", StatusHandler),
+    ])
+
+    http_server = httpserver.HTTPServer(application)
+    http_server.listen(PROXY_PORT)
+    ioloop.IOLoop.instance().start()
+
 if __name__ == "__main__":
-    try:
-        print('Started Freeciv-proxy. Use Control-C to exit')
-
-        if len(sys.argv) == 2:
-            PROXY_PORT = int(sys.argv[1])
-        print(('port: ' + str(PROXY_PORT)))
-
-        LOG_FILENAME = '../logs/freeciv-proxy-logging-' + str(PROXY_PORT) + '.log'
-        logging.basicConfig(filename=LOG_FILENAME,level=logging.INFO)
-        logger = logging.getLogger("freeciv-proxy")
-
-        application = web.Application([
-            (r'/civsocket/' + str(PROXY_PORT), WSHandler),
-            (r"/", IndexHandler),
-            (r"(.*)status", StatusHandler),
-        ])
-
-        http_server = httpserver.HTTPServer(application)
-        http_server.listen(PROXY_PORT)
-        ioloop.IOLoop.instance().start()
-
-    except KeyboardInterrupt:
-        print('Exiting...')
+    main()
