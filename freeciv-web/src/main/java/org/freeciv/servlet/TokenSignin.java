@@ -86,7 +86,7 @@ public class TokenSignin extends HttpServlet {
 	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
 		logParams(request);
-
+			   
 		String idtoken = request.getParameter("idtoken");
 		String username = request.getParameter("username");
 		Connection conn = null;
@@ -161,6 +161,7 @@ public class TokenSignin extends HttpServlet {
 						ps0.setString(5, ipAddress);
 						ps0.executeUpdate();
 						response.getOutputStream().print(userId);
+						LOGGER.debug("user " + username + " inserted");
 					} else {
 						String dbSubject = rs.getString(1);
 						int dbActivated = rs.getInt(2);
@@ -174,8 +175,10 @@ public class TokenSignin extends HttpServlet {
 							preparedStatement.setString(1, ipAddress);
 							preparedStatement.setString(2, username.toLowerCase());
 							preparedStatement.executeUpdate();
+							LOGGER.debug("user " + username + " updated: username and userid matches");
 						} else {
 							// if username and userId doesn't match, then login not OK!
+							LOGGER.debug("user " + username + " failed: username and userid doesnt match");
 							response.getOutputStream().print("Failed");
 						}
 					}

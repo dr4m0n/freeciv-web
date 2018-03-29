@@ -104,6 +104,7 @@ public class CivclientLauncher extends HttpServlet {
 				rs0 = ps0.executeQuery();
 				if (rs0.next()) {
 					civServerPort = Integer.toString(rs0.getInt(1));
+					LOGGER.info("Port found: civServerPort=" + civServerPort + "[1]");
 				} else {
 					LOGGER.info("No servers available for creating a new game on.");
 					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "No servers available for creating a new game on.");
@@ -115,15 +116,18 @@ public class CivclientLauncher extends HttpServlet {
 			if (Constants.VALIDATING) {
 
 				String validateQuery = QueryDesigner.checkPort();
-				ps1 = conn.prepareStatement(validateQuery);
+
 				if (StringUtils.isEmpty(civServerPort)) {
 					LOGGER.info("Unable to find a valid Freeciv server to play on. Please try again later.");
 					response.setHeader("result", "invalid port validation");
 					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
 							"Unable to find a valid Freeciv server to play on. Please try again later.");
 					return;
+				} else {
+					LOGGER.info("Port found: civServerPort=" + civServerPort + "[2]");
 				}
 
+				ps1 = conn.prepareStatement(validateQuery);
 				ps1.setInt(1, Integer.parseInt(civServerPort));
 				rs1 = ps1.executeQuery();
 				rs1.next();

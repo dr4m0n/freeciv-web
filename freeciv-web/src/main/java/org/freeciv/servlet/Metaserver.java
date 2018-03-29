@@ -348,11 +348,11 @@ public class Metaserver extends HttpServlet {
 	 * @param request
 	 */
 	protected void logParams(HttpServletRequest request) {
-		LOGGER.info("request received! (loggin has been hidden for now)");
+		LOGGER.debug("request received!");
 		Enumeration<String> params = request.getParameterNames();
 		while (params.hasMoreElements()) {
 			String paramName = params.nextElement();
-			LOGGER.trace(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+			LOGGER.debug(" * Parameter Name=" + paramName + ", Value=" + request.getParameter(paramName));
 		}
 	}
 
