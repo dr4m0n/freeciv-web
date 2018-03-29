@@ -161,58 +161,32 @@ ul.blog-post-summary>li>a:nth-of-type(2n) {
 	<div class="container">
 		<%@include file="/WEB-INF/jsp/fragments/header.jsp"%>
 
-		<div class="row">
-			<div class="col-md-12">
-				<script async
-					src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-				<ins class="adsbygoogle" style="display: block"
-					data-ad-client="ca-pub-5520523052926214" data-ad-slot="7043279885"
-					data-ad-format="auto"></ins>
-				<script>
-					(adsbygoogle = window.adsbygoogle || []).push({});
-				</script>
-			</div>
-		</div>
-
 		<div class="jumbotron">
+			<div class="container-fluid">
+				<div class="row top-buffer-3">
+					<p class="lead">
+						<fmt:message key="index-lead" />
+
+						<div class="row top-buffer-3">
+                         <h1>Join Longturn Game XV</h1>
+                         <b>Game XV has started and you can join it now!</b><br>
+                         <b>Each player will play one turn every day. <br><br>
+                         This will be one of the greatest ever multiplayer game of Freeciv with 80 players on 17000 map tiles!<br>
+                         </b>
+                         <h2><a href="/webclient?action=multi&civserverport=6003&civserverhost=play&multi=true">Join the LongTurn Web XV here!</a></h2>
+			            </div>
 			<div class="row">
 
 				<img src="/static/images/freeciv-webgl-splash-48.png" alt=""
 					style="width: 95%;">
 
 			</div>
-			<div class="container-fluid">
-				<div class="row top-buffer-3">
-					<p class="lead">
-						<fmt:message key="index-lead" />
-
-						<%--<div class="row top-buffer-3">
-                         <h1>Join Freeciv-web: One Turn per Day game XII</h1>
-                         <b>Game XII XI has started and you can join it now!</b><br>
-                         <b>Each player will play one turn every day. <br><br>
-                         This will be one of the greatest ever multiplayer game of Freeciv with 300 players on 30000 map tiles!<br>
-                         </b>
-                         <h2><a href="/webclient?action=multi&civserverport=6006&civserverhost=play&multi=true">Join the LongTurn Web XII here!</a></h2>
-			            </div>--%>
 
 					</p>
 				</div>
 			</div>
 		</div>
 		<!-- end jumbotron -->
-
-		<div class="row">
-			<div class="col-md-12">
-				<script async
-					src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-				<ins class="adsbygoogle" style="display: block"
-					data-ad-client="ca-pub-5520523052926214" data-ad-slot="7043279885"
-					data-ad-format="auto"></ins>
-				<script>
-					(adsbygoogle = window.adsbygoogle || []).push({});
-				</script>
-			</div>
-		</div>
 
 		<div id="game-launcher" class="row">
 
@@ -296,19 +270,9 @@ ul.blog-post-summary>li>a:nth-of-type(2n) {
 						</div>
 					</c:if>
 					<a
-						href="/webclient?action=multi&civserverport=6004&civserverhost=play&multi=true"
-						class="btn" style="font-size: 15px; padding: 4px;">Game X -
-						One Turn per Day</a> <a
-						href="/webclient?action=multi&civserverport=6005&civserverhost=play&multi=true"
-						class="btn" style="font-size: 15px; padding: 4px;">Game XI -
-						One Turn per Day</a> <a
-						href="/webclient?action=multi&civserverport=6006&civserverhost=play&multi=true"
-						class="btn" style="font-size: 15px; padding: 4px;">Game XII -
-						One Turn per Day</a> <a
-						href="/webclient?action=multi&civserverport=6007&civserverhost=play&multi=true"
-						class="btn" style="font-size: 15px; padding: 4px;">Game XIII -
+						href="/webclient?action=multi&civserverport=6003&civserverhost=play&multi=true"
+						class="btn" style="font-size: 15px; padding: 4px;">Game XV -
 						One Turn per Day</a>
-
 				</div>
 			</div>
 		</div>
@@ -356,21 +320,6 @@ ul.blog-post-summary>li>a:nth-of-type(2n) {
 			</a>
 		</div>
 		<!-- end apps/browser plugins -->
-
-
-
-		<div class="row top-buffer-1">
-			<div class="col-md-12 ">
-				<script async
-					src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-				<ins class="adsbygoogle" style="display: block"
-					data-ad-client="ca-pub-5520523052926214" data-ad-slot="7043279885"
-					data-ad-format="auto"></ins>
-				<script>
-					(adsbygoogle = window.adsbygoogle || []).push({});
-				</script>
-			</div>
-		</div>
 
 		<div class="row">
 			<div class="col-md-6">
@@ -458,22 +407,6 @@ ul.blog-post-summary>li>a:nth-of-type(2n) {
 			</div>
 		</div>
 		<!-- end multiplayer/best play by email -->
-
-
-		<div class="row top-buffer-1">
-			<div class="col-md-12">
-				<script async
-					src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-				<ins class="adsbygoogle" style="display: block"
-					data-ad-client="ca-pub-5520523052926214" data-ad-slot="7043279885"
-					data-ad-format="auto"></ins>
-				<script>
-					(adsbygoogle = window.adsbygoogle || []).push({});
-				</script>
-			</div>
-		</div>
-
-
 
 		<div class="row">
 			<div class="col-md-12">

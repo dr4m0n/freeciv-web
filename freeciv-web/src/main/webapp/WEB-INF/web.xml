@@ -59,6 +59,13 @@
 	</error-page>
 
 	<!-- / -->
+
+	<servlet>
+		<servlet-name>StartupFreeCivServlet</servlet-name>
+		<servlet-class>jorg.freeciv.init.StartupFreeCivServlet</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
 	<servlet>
 		<servlet-name>Index</servlet-name>
 		<servlet-class>org.freeciv.servlet.Index</servlet-class>
@@ -223,7 +230,6 @@
 		<url-pattern>/user_count</url-pattern>
 	</servlet-mapping>
 
-
 	<!-- /deactivate_user -->
 	<servlet>
 		<servlet-name>DeactivateUser</servlet-name>
@@ -256,7 +262,6 @@
 		<servlet-name>ResetPassword</servlet-name>
 		<url-pattern>/reset_password</url-pattern>
 	</servlet-mapping>
-
 
 	<!-- /deletesavegame -->
 	<servlet>
@@ -311,5 +316,13 @@
 		<welcome-file>index.jsp</welcome-file>
 		<welcome-file>index.html</welcome-file>
 	</welcome-file-list>
+
+	<!-- ######### -->
+	<!-- listeners -->
+	<!-- ######### -->
+
+	<listener>
+		<listener-class>org.freeciv.init.MySessionListener</listener-class>
+	</listener>
 
 </web-app>

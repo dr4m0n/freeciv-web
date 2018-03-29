@@ -20,6 +20,7 @@ package org.freeciv.servlet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -36,7 +37,6 @@ import javax.sql.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.utils.Constants;
 import org.freeciv.utils.QueryDesigner;
 
@@ -69,7 +69,6 @@ public class TokenSignin extends HttpServlet {
 	 */
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-
 		try {
 			Properties prop = new Properties();
 			prop.load(getServletContext().getResourceAsStream("/WEB-INF/config.properties"));
@@ -87,10 +86,18 @@ public class TokenSignin extends HttpServlet {
 	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
 		logParams(request);
-		response.getOutputStream().print("winner");
-		return;
 
-		/*
+		if (Constants.VALIDATING) {
+			// will continue
+		} else {
+			try {
+				response.getOutputStream().print("winner");
+			} catch (Exception e) {
+				LOGGER.error("ERROR!", e);
+			}
+			return;
+		}
+
 		String idtoken = request.getParameter("idtoken");
 		String username = request.getParameter("username");
 		Connection conn = null;
@@ -102,8 +109,24 @@ public class TokenSignin extends HttpServlet {
 			ipAddress = request.getRemoteAddr();
 		}
 		try {
+			LOGGER.info("google_signin_key=" + google_signin_key);
+
+			if (google_signin_key == null || "".equals(google_signin_key.trim())) {
+
+				try {
+					response.getOutputStream().print("Invalid Key");
+				} catch (Exception e) {
+					LOGGER.error("ERROR!", e);
+				}
+				return;
+
+			} else {
+				// will continue
+			}
+
+			List<String> singletonList = Collections.singletonList(google_signin_key);
 			GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(GoogleNetHttpTransport.newTrustedTransport(), jacksonFactory)
-					.setAudience(Collections.singletonList(google_signin_key)).build();
+					.setAudience(singletonList).build();
 			if (verifier == null) {
 
 				LOGGER.warn("verifier is null. Is this correct? Is this desirable?");
@@ -203,7 +226,6 @@ public class TokenSignin extends HttpServlet {
 				}
 			}
 		}
-		*/
 	}
 
 	/**

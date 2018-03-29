@@ -28,7 +28,6 @@ import javax.sql.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.utils.Constants;
 import org.freeciv.utils.QueryDesigner;
 
@@ -108,7 +107,7 @@ public class UserCount extends HttpServlet {
 		LOGGER.warn("This endpoint only supports the POST method.");
 		response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "This endpoint only supports the POST method.");
 	}
-	
+
 	/**
 	 * @param request
 	 */
@@ -119,6 +118,6 @@ public class UserCount extends HttpServlet {
 			String paramName = params.nextElement();
 			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
 		}
-	}	
+	}
 
 }

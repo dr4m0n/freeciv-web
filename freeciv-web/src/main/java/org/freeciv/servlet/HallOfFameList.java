@@ -30,7 +30,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.services.Statistics;
 
 // TODO: Auto-generated Javadoc

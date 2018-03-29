@@ -42,7 +42,6 @@ import org.json.JSONObject;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.utils.Constants;
 import org.freeciv.utils.QueryDesigner;
 
@@ -349,11 +348,11 @@ public class Metaserver extends HttpServlet {
 	 * @param request
 	 */
 	protected void logParams(HttpServletRequest request) {
-		LOGGER.info("request received!");
+		LOGGER.info("request received! (loggin has been hidden for now)");
 		Enumeration<String> params = request.getParameterNames();
 		while (params.hasMoreElements()) {
 			String paramName = params.nextElement();
-			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
+			LOGGER.trace(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
 		}
 	}
 

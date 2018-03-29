@@ -30,7 +30,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.services.Statistics;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -77,7 +76,7 @@ public class GameStatisticsDetails extends HttpServlet {
 		RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/jsp/game/statistics-details.jsp");
 		rd.forward(request, response);
 	}
-	
+
 	/**
 	 * @param request
 	 */
@@ -88,6 +87,6 @@ public class GameStatisticsDetails extends HttpServlet {
 			String paramName = params.nextElement();
 			LOGGER.info(" * Parameter Name - " + paramName + ", Value - " + request.getParameter(paramName));
 		}
-	}	
+	}
 
 }

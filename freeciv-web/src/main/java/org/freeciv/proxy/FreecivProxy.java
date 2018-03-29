@@ -30,7 +30,6 @@ import javax.websocket.*;
 import javax.websocket.server.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.utils.Constants;
 
 // TODO: Auto-generated Javadoc
@@ -239,14 +238,14 @@ public class FreecivProxy {
 
 		LOGGER.debug("IP of my system is := " + myLocalIp.getHostAddress());
 
-		InetSocketAddress addr = new InetSocketAddress("10.4.0.4", port);
+		// InetSocketAddress addr = new InetSocketAddress(Constants.HOSTNAME, port);
 
-		/*InetSocketAddress addr = null;
+		InetSocketAddress addr = null;
 		if ("0.0.0.0".equals(myLocalIp.getHostAddress())) {
 			addr = new InetSocketAddress(Constants.HOSTNAME, port);
 		} else {
-			new InetSocketAddress(myLocalIp.getHostAddress(), port);
-		}*/
+			addr = new InetSocketAddress(myLocalIp.getHostAddress(), port);
+		}
 
 		backend = AsynchronousSocketChannel.open();
 		backendOut = new ConcurrentLinkedQueue<>();

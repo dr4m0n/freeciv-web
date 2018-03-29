@@ -20,7 +20,6 @@ package org.freeciv.servlet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.utils.Constants;
 import org.freeciv.utils.QueryDesigner;
 
@@ -113,26 +112,28 @@ public class CivclientLauncher extends HttpServlet {
 			}
 
 			/* Validate port */
-			/*
-			String validateQuery = QueryDesigner.checkPort();
-			ps1 = conn.prepareStatement(validateQuery);
-			if (StringUtils.isEmpty(civServerPort)) {
-				LOGGER.info("Unable to find a valid Freeciv server to play on. Please try again later.");
-				response.setHeader("result", "invalid port validation");
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to find a valid Freeciv server to play on. Please try again later.");
-				return;
-			}
+			if (Constants.VALIDATING) {
 
-			ps1.setInt(1, Integer.parseInt(civServerPort));
-			rs1 = ps1.executeQuery();
-			rs1.next();
-			if (rs1.getInt(1) != 1) {
-				LOGGER.info("Invalid input values to civclient.");
-				response.setHeader("result", "invalid port validation");
-				response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid input values to civclient.");
-				return;
+				String validateQuery = QueryDesigner.checkPort();
+				ps1 = conn.prepareStatement(validateQuery);
+				if (StringUtils.isEmpty(civServerPort)) {
+					LOGGER.info("Unable to find a valid Freeciv server to play on. Please try again later.");
+					response.setHeader("result", "invalid port validation");
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+							"Unable to find a valid Freeciv server to play on. Please try again later.");
+					return;
+				}
+
+				ps1.setInt(1, Integer.parseInt(civServerPort));
+				rs1 = ps1.executeQuery();
+				rs1.next();
+				if (rs1.getInt(1) != 1) {
+					LOGGER.info("Invalid input values to civclient.");
+					response.setHeader("result", "invalid port validation");
+					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Invalid input values to civclient.");
+					return;
+				}
 			}
-			*/
 
 		} catch (Exception err) {
 			LOGGER.error("SQL ERROR!", err);

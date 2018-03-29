@@ -20,7 +20,6 @@ package org.freeciv.servlet;
 import org.apache.commons.codec.digest.Crypt;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.freeciv.context.EnvSqlConnection;
 import org.freeciv.utils.Constants;
 import org.freeciv.utils.QueryDesigner;
 
