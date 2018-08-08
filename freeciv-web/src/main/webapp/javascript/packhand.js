@@ -1643,3 +1643,12 @@ function handle_team_name_info(packet)
 {
   /* TODO: implement */
 }
+
+function handle_web_ruleset_unit_addition(packet) {
+  /* TODO: implement */
+}
+
+function handle_web_player_info_addition(packet) {
+  /* TODO: implement */
+}
+

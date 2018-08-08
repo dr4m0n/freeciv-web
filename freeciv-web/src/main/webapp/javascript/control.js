@@ -1588,6 +1588,7 @@ function do_map_click(ptile, qtype, first_time_called)
       "extra_id"    : EXTRA_NONE,
       "value"       : 0,
       "name"        : "",
+      "extra_id"    : EXTRA_NONE,
       "action_type" : ACTION_PARADROP
     };
     send_request(JSON.stringify(packet));
@@ -1604,6 +1605,7 @@ function do_map_click(ptile, qtype, first_time_called)
         "extra_id"    : EXTRA_NONE,
         "value"       : 0,
         "name"        : "",
+        "extra_id"    : EXTRA_NONE,
         "action_type" : ACTION_AIRLIFT
       };
       send_request(JSON.stringify(packet));
@@ -2432,6 +2434,7 @@ function key_unit_upgrade()
       "extra_id"    : EXTRA_NONE,
       "value"       : 0,
       "name"        : "",
+      "extra_id"    : EXTRA_NONE,
       "action_type" : ACTION_UPGRADE_UNIT
     };
     send_request(JSON.stringify(packet));
@@ -2559,6 +2562,7 @@ function key_unit_homecity()
                     "extra_id" : EXTRA_NONE,
                     "value" : 0,
                     "name" : "",
+                    "extra_id": EXTRA_NONE,
                     "action_type": ACTION_HOME_CITY};
       send_request(JSON.stringify(packet));
       $("#order_change_homecity").hide();
@@ -2731,6 +2735,7 @@ function request_unit_build_city()
             "extra_id"    : EXTRA_NONE,
             "value"       : 0,
             "name"        : "",
+            "extra_id"    : EXTRA_NONE,
             "action_type" : ACTION_JOIN_CITY };
         }
 
@@ -2773,6 +2778,7 @@ function(){
       "extra_id"    : EXTRA_NONE,
       "value"       : 0,
       "name"        : "",
+      "extra_id"    : EXTRA_NONE,
       "action_type" : (target_city == null ? ACTION_DISBAND_UNIT
                                            : ACTION_RECYCLE_UNIT)
     };

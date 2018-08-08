@@ -866,6 +866,7 @@ function city_name_dialog(suggested_name, unit_id) {
                       "extra_id" : EXTRA_NONE,
                       "value" : 0,
                       "name" : encodeURIComponent(name),
+                      "extra_id" : EXTRA_NONE,
                       "action_type": ACTION_FOUND_CITY};
       send_request(JSON.stringify(packet));
 	  $("#city_name_dialog").remove();
@@ -885,6 +886,7 @@ function city_name_dialog(suggested_name, unit_id) {
                       "extra_id" : EXTRA_NONE,
                       "value" : 0,
                       "name" : encodeURIComponent(name),
+                      "extra_id" : EXTRA_NONE,
                       "action_type": ACTION_FOUND_CITY};
 	send_request(JSON.stringify(packet));
 	$("#city_name_dialog").remove();
