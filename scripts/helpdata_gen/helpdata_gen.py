@@ -54,7 +54,7 @@ def config_read(file):
 
 
 
-parser = config_read("../freeciv/freeciv/data/helpdata.txt");
+parser = config_read("../freeciv/data/helpdata.txt");
 thedict = {}
 for section in parser.sections():
     thedict[section] = {}

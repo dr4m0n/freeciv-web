@@ -20,7 +20,7 @@
 
 import re
 
-root = '../freeciv/freeciv/common/'
+root = '../freeciv/common/'
 in_comment = False
 
 section_names = []

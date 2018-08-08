@@ -14,7 +14,7 @@
 
 SCRIPT_DIR="$(dirname "$0")"
 
-cd ${SCRIPT_DIR}/../../freeciv/freeciv/ && \
+cd ${SCRIPT_DIR}/../../freeciv/ && \
 ./tools/freeciv-manual -r civ2civ3 && \
 ./tools/freeciv-manual -r classic && \
 ./tools/freeciv-manual -r multiplayer && \

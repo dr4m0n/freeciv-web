@@ -26,6 +26,6 @@ public class Constants {
 	public static final String HOSTNAME = "10.4.0.4";
 
 	/** The Constant VALIDATING. */
-	public static final boolean VALIDATING = true;
+	public static final boolean VALIDATING = false;
 
 }

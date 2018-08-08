@@ -1469,7 +1469,7 @@ def gen_main():
     ### parsing input
     src_dir=os.path.dirname(sys.argv[0])
     src_root=src_dir+"."
-    input_name="../freeciv/freeciv/common/networking/packets.def"
+    input_name="../freeciv/common/networking/packets.def"
     ### We call this variable target_root instead of build_root
     ### to avoid confusion as we are not building to builddir in
     ### automake sense.
