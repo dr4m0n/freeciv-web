@@ -7,7 +7,7 @@ rulesetdir multiplayer
 set maxplayers 80
 set aifill 80
 set timeout 82800
-set first_timeout 172800
+set first_timeout 259200
 
 #geological
 set size 32
