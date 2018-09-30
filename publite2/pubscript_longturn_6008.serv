@@ -6,6 +6,8 @@ rulesetdir multiplayer
 
 set maxplayers 80
 set aifill 80
+set timeout 82800
+set first_timeout 172800
 
 #geological
 set size 32
@@ -15,9 +17,6 @@ set startpos DEFAULT
 
 #sociological
 set startunits=cccwwwxx
-
-set timeout 82800
-set first_timeout 172800
 
 
 set nationset all
