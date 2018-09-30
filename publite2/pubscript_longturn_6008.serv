@@ -1,13 +1,24 @@
-#LongTurn Web X
+#LongTurn Web XVII
 
 cmdlevel ctrl first
-rulesetdir longturn-web-x 
+
+rulesetdir multiplayer
+
+set maxplayers 80
+set aifill 80
+
+#geological
+set size 32
 set topology WRAPX
+set generator RANDOM
+set startpos DEFAULT
+
+#sociological
+set startunits=cccwwwxx
+
+
 set nationset all
 set compresstype xs
-set maxplayers 300
-set startunits=cccwwwxx
-set aifill 300
 set allowtake=""
 set autotoggle false
 set timeout 82800
@@ -20,10 +31,10 @@ set maxconnectionsperhost 500
 set threaded_save enabled
 set scorelog disabled
 set mapsize FULLSIZE
-set size 32
 set topology=
-set landm 70
+set landm 63
 set dispersion=1
+
 
 set endt 365
 
@@ -31,7 +42,6 @@ set diplomacy=HUMAN
 set contactturns=0
 
 set minp 0
-set generator Island
 set saveturns=1
 set autosaves=TURN
 metaconnection persistent
@@ -39,7 +49,17 @@ set ec_chat=enabled
 set ec_info=enabled 
 set ec_max_size=5000
 set ec_turns=9
-metamessage LongTurn-Web-X | LTW-X | 1 turn per day | 300 players | 32000 tiles | Join now!
+
+set revolen 1
+set spacerace DISABLED
+set borders SEE_INSIDE
+
+
+
+metamessage LongTurn-Web-XVII | 1 turn per day | 80 players | 32000 tiles | 50% Land | Join now!
 
 
 cmdlevel basic
+
+
+
