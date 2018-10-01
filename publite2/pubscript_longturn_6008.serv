@@ -6,6 +6,8 @@ rulesetdir multiplayer
 
 set maxplayers 80
 set aifill 80
+set timeout 82800
+set first_timeout 259200
 
 #geological
 set size 32
@@ -21,7 +23,7 @@ set nationset all
 set compresstype xs
 set allowtake=""
 set autotoggle false
-set timeout 82800
+
 set unitwaittime=36000
 set netwait 150
 set nettimeout 120
@@ -56,8 +58,7 @@ set borders SEE_INSIDE
 
 
 
-metamessage LongTurn-Web-XVII | 1 turn per day | 80 players | 32000 tiles | 50% Land | Join now!
-
+metamessage Longturn Game XVII | 1 turn per day | 80 players | 32000 tiles | 63% Land | Join now!
 
 cmdlevel basic
 
