@@ -21,8 +21,6 @@
 ***********************************************************************'''
 
 
-from os import path as op
-from os import chdir
 import re
 import sys
 import time
@@ -34,10 +32,7 @@ from civcom import *
 import json
 import uuid
 import gc
-#import mysql.connector
-import configparser
 
-import pyodbc
 
 PROXY_PORT = 8002
 CONNECTION_LIMIT = 1000
@@ -45,17 +40,6 @@ CONNECTION_LIMIT = 1000
 civcoms = {}
 
 DB = None
-
-chdir(sys.path[0])
-settings = configparser.ConfigParser()
-settings.read("settings.ini")
-
-mssql_driver=settings.get("Config", "mssql_driver");
-mssql_host=settings.get("Config", "mssql_host");
-mssql_port=settings.get("Config", "mssql_port");
-mssql_database=settings.get("Config", "mssql_database");
-mssql_username=settings.get("Config", "mssql_user");
-mssql_password=settings.get("Config", "mssql_password");
 
 class IndexHandler(web.RequestHandler):
 
@@ -87,18 +71,7 @@ class WSHandler(websocket.WebSocketHandler):
             # called the first time the user connects.
             login_message = json.loads(message)
             self.username = login_message['username']
-            if (not validate_username(self.username)):
-              logger.warn("invalid username: " + str(message))
-              self.write_message("[{\"pid\":5,\"message\":\"Error: Could not authenticate user. If you find a bug, please report it.\",\"you_can_join\":false,\"conn_id\":-1}]")
-              return
             self.civserverport = login_message['port']
-            auth_ok = self.check_user(
-                login_message['username'] if 'username' in login_message else None, 
-                login_message['password'] if 'password' in login_message else None, 
-                login_message['subject'] if 'subject' in login_message else None)
-            if (not auth_ok): 
-              self.write_message("[{\"pid\":5,\"message\":\"Error: Could not authenticate user with password. Try a different username.\",\"you_can_join\":false,\"conn_id\":-1}]")
-              return
 
             self.loginpacket = message
             self.is_ready = True
@@ -128,50 +101,6 @@ class WSHandler(websocket.WebSocketHandler):
             del(self.civcom)
             gc.collect()
 
-    # Check if username and password if correct, if the user already exists in the database.
-    def check_user(self, username, password, check_subject):
-      result = None;
-      cursor = None;
-      try:
-        # Check login with Google Account
-        cursor = DB.cursor()
-        query = ("select subject, activated, (select a.username from auth a where ga.username = a.username) as auth_username from google_auth ga where lower(username)=lower(?)")
-        cursor.execute(query, (username,))
-        row = cursor.fetchone()
-        if not row:
-            return False
-	
-        (subject, activated, auth_username) = row
-        if not activated:
-            return False
-
-        if (subject is not None and subject != check_subject and auth_username is None):
-            return False;
-        if (subject is not None and subject == check_subject):
-            return True;
-
-        # Get the hashed password from the database
-        query = ("select username, secure_hashed_password, activated from auth where lower(username)=lower(?)")
-        cursor.execute(query, (username,))
-        row = cursor.fetchone()
-        if not row:
-            return False
-        (username, salt, activated) = row
-        if not activated:
-            return False
-        if not salt:
-            return True;
-
-        # Validate the password in the database
-        query = ("select count(*) from auth where lower(username)=lower(?) and secure_hashed_password = ENCRYPT(?, ?)")
-        cursor.execute(query, (username, password, salt,))
-        row = cursor.fetchone()
-        if not row and row[0]:
-            return False
-      finally:
-        cursor.close()
-      return True;
-
     # enables support for allowing alternate origins. See check_origin in websocket.py
     def check_origin(self, origin):
       return True;
@@ -194,17 +123,6 @@ class WSHandler(websocket.WebSocketHandler):
         else:
             return civcoms[key]
 
-
-def validate_username(name):
-    if (name is None
-            or len(name) <= 2 or len(name) >= 32
-            or name == "pbem"
-            or re.search('[^a-zA-Z]', name) is not None):
-        return False
-    else:
-        return True
-
-
 def main():
     print('Started Freeciv-proxy. Use Control-C to exit')
 
@@ -213,18 +131,12 @@ def main():
         PROXY_PORT = int(sys.argv[1])
     print(('port: ' + str(PROXY_PORT)))
 
-    global DB
-    # cnx = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (mssql_host, mssql_username, mssql_password, mssql_database)
-    # cnx = 'DRIVER={SQL Server};SERVER=%s;UID=%s;PWD=%s;;DATABASE=%s' % (mssql_host, mssql_username, mssql_password, mssql_database)
-    # cnx = 'DSN=FCWebDB;UID=fcweb@fcwebdb;PWD=FC123web'
-    cnx = 'DRIVER='+mssql_driver+';PORT='+mssql_port+';SERVER='+mssql_host+';PORT=1443;DATABASE='+mssql_database+';UID='+mssql_username+';PWD='+mssql_password
-    DB = pyodbc.connect(cnx)
     LOG_FILENAME = '../logs/freeciv-proxy-logging-' + str(PROXY_PORT) + '.log'
     logging.basicConfig(filename=LOG_FILENAME,level=logging.INFO)
     logger = logging.getLogger("freeciv-proxy")
 
     application = web.Application([
-        (r'/civsocket/' + str(PROXY_PORT), WSHandler),
+        (r'/civsocket/.*', WSHandler),
         (r"/", IndexHandler),
         (r"(.*)status", StatusHandler),
     ])
