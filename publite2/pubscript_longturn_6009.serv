@@ -14,6 +14,7 @@ set compresstype xs
 set allowtake=""
 set autotoggle false
 set unitwaittime=36000
+set unitwaittime_style ACTIVITIES
 set netwait 150
 set nettimeout 120
 set pingtime 30
@@ -38,8 +39,9 @@ set startpos DEFAULT
 set landmass 60
 
 #sociological
-set startunits=cccwwwxx
-set dispersion 3
+set startunits=cccwwwxxs
+set dispersion 0
+set trading_city disabled
 set rapturedelay 2
 set revolen 1
 set endturn 365
@@ -48,12 +50,12 @@ set endturn 365
 set borders "ENABLED"
 set diplomacy "HUMAN"
 set foggedborders enabled
-set restrictinfra enabled
+set airliftingstyle "FROM_ALLIES|DEST_UNLIMITED"
+set victories ALLIED
 
 #scientific
 set sciencebox 80
-set spacerace disabled
-
+set endspaceship DISABLED
 
 metamessage FREECIVWEB Game XVIII | 1 turn per day | 60 players | 15000 tiles | 60% Land | Join now!
 
