@@ -39,7 +39,7 @@ set startpos DEFAULT
 set landmass 60
 
 #sociological
-set startunits=cccwwwxxs
+set startunits=cccwwwxx
 set dispersion 0
 set trading_city disabled
 set rapturedelay 2
