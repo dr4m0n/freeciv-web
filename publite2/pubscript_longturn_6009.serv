@@ -32,14 +32,15 @@ set ec_turns=9
 
 #geological
 set mapsize FULLSIZE
-set size 15
+set size 18
 set topology WRAPX
 set generator RANDOM
 set startpos DEFAULT
 set landmass 60
+set specials 250
 
 #sociological
-set startunits=cccwwwxx
+set startunits=ccccwwwwxxs
 set dispersion 0
 set trading_city disabled
 set rapturedelay 2
