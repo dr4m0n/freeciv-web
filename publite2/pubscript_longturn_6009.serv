@@ -14,7 +14,6 @@ set compresstype xs
 set allowtake=""
 set autotoggle false
 set unitwaittime=36000
-set unitwaittime_style ACTIVITIES
 set netwait 150
 set nettimeout 120
 set pingtime 30
